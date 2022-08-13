@@ -1,0 +1,348 @@
+'use strict'
+
+var validator = require('validator');
+var User = require('../models/User');
+const RegistroCivil = require('../third-party/RegistroCivil');
+var fs = require('fs'); //FileSystem
+var path = require('path');
+
+let controller = {
+
+    datoscurso: (req, res)=> {
+        console.log(req.query.aaa);
+        return res.status(200).send({
+            curso : "Curso ReactJs",
+            alumno : "Eduardo Onetto",
+            url : "https://github.com/eduardoonetto"
+        });
+    
+    },
+
+    test: (req, res) => {
+        return res.status(200).send({
+            message : 'Soy la accion test de mi controlador de articulos'
+        });
+    },
+
+    createUser: async (req, res) => {
+        //recoger Params:
+        let Params = req.body;
+        
+        try{
+            //Validar Datos:
+            let val_name        = !validator.isEmpty(Params.name);
+            let val_last_name   = !validator.isEmpty(Params.last_name);
+            let val_birthday    = !validator.isEmpty(Params.birthday);
+            let val_serie       = !validator.isEmpty(Params.nro_serie);
+            let val_rut         = !validator.isEmpty(Params.rut);
+            //TODO: revisar librerias de encriptacion:
+            let val_password = !validator.isEmpty(Params.password);
+
+            if(val_name && val_last_name && val_birthday && val_rut && val_password && val_serie){
+
+                //Valida cedula:
+                let validacion_cedula = new RegistroCivil();
+                let consulta = await validacion_cedula.showData(Params.rut, Params.nro_serie);
+                if(consulta.result.Err !== 0 || consulta.result.Verificacion == 'N'){
+                    return res.status(400).send({
+                        status  : 'NOK',
+                        message : 'Cedula no valida'
+                    });
+                }
+                //Crear el objeto a guardar:
+                let new_user = new User();
+                //Asignar valores al objeto:
+                new_user.name        = Params.name;
+                new_user.last_name   = Params.last_name;
+                new_user.birthday    = Params.birthday;
+                new_user.rut         = Params.rut;
+                new_user.institution = Params.rut;
+                new_user.password    = Params.password;
+
+                //Guardar Articulo:
+                new_user.save((err, userCreated) => {
+                    if(err || !userCreated){
+                        if(err.code == 11000){
+                            return res.status(403).send({
+                                status  : 'NOK',
+                                message : 'El usuario ' + Params.rut + ' ya se encuentra registrado.'
+                            }); 
+                        }
+                        
+                        return res.status(403).send({
+                            status  : 'NOK',
+                            message : 'El Articulo no se ha guardado.'
+                        });
+                    }
+                    //devolver respuesta:
+                    return res.status(200).send({
+                        status  : 'OK',
+                        article : userCreated
+                    });
+
+                });
+            }else{
+                return res.status(400).send({
+                    status  : 'NOK',
+                    message : 'Validacion incorrecta'
+                });
+            }
+        }catch(err){
+            console.log(err);
+            return res.status(400).send({
+                status  : 'NOK',
+                message : 'Faltan Campos'
+            });
+        }
+
+    },
+
+    getArticles: (req, res) => {
+
+        var query = User.find({});
+
+        var last = req.params.last;
+        console.log(last);
+        if(last || last != undefined ){
+            query.limit(2);
+        }
+        // buscar:
+        query.sort('-_id').exec((err, articles) =>{
+            if (err){
+                return res.status(500).send({
+                    status  : 'NOK',
+                    message : 'Error al consultar coleccion'
+                }); 
+            }
+
+            if(!articles){
+                return res.status(404).send({
+                    status  : 'NOK',
+                    message : 'No hay Articulos'
+                });
+            }
+
+            return res.status(200).send({
+                status : 'OK',
+                articles
+            });
+        });
+        
+    },
+
+    getArticle: (req, res) => {
+
+        //recoger id:
+        var id = req.params.id
+        //comprobar que existe:
+        if(id || id != undefined ){
+            //buscar el articulo:
+            User.findById(id,(err, articulo)=>{
+                // Devolverlo en un json:
+                if (err){
+                    return res.status(500).send({
+                        status : 'NOK',
+                        message : 'Error en Motor'
+                    });
+                }
+                if (!articulo){
+                    return res.status(404).send({
+                        status : 'NOK',
+                        message : 'Articulo no encontrado'
+                    });
+                }
+                return res.status(200).send({
+                    status : 'OK',
+                    articulo
+                });
+            });
+        }else{
+            return res.status(400).send({
+                status : 'NOK',
+                message : 'falta id de articulo'
+            });
+        }
+        
+    },
+
+    updateArticle: (req, res) => {
+        // Recoger id
+        var articleId = req.params.id;
+
+        // Recoger los datos que llegan por put:
+        var params = req.body;
+
+        // Validar datos:
+        try{
+            var validate_title = !validator.isEmpty(params.title);
+            var validate_content = !validator.isEmpty(params.content);
+            if (validate_content && validate_title){
+                User.findByIdAndUpdate({_id : articleId}, params, {new:true}, (err, articleUpdated)=> {
+                    if (err){
+                        return res.status(500).send({
+                            status : 'NOK',
+                            message : 'Error al Actualizar'
+                        });
+                    }
+
+                    if(!articleUpdated){
+                        return res.status(400).send({
+                            status : 'NOK',
+                            message : 'No existe el Articulo'
+                        });
+                    }
+                    
+                    return res.status(200).send({
+                        status : 'OK',
+                        articleUpdated
+                    });
+
+                })
+            }else{
+                return res.status(400).send({
+                    status : 'NOK',
+                    message : 'Tiene campos Vacios'
+                });
+            }
+        }catch(err){
+            return res.status(400).send({
+                status : 'NOK',
+                message : 'falta campos de articulo'
+            });
+        }
+    },
+    deleteArticle: (req, res) => {
+        var articleId = req.params.id;
+        try{
+            User.findOneAndDelete({_id : articleId}, (err, articleRemoved)=> {
+                if(err){
+                    return res.status(500).send({
+                        status : 'NOK',
+                        message : 'Error al borrar'
+                    });
+                }
+
+                if(!articleRemoved){
+                    return res.status(400).send({
+                        status : 'NOK',
+                        message : 'No existe el Articulo'
+                    });
+                }
+
+                return res.status(200).send({
+                    status : 'OK',
+                    articleRemoved
+                });
+
+            });
+        }catch(err){
+            return res.status(400).send({
+                status : 'NOK',
+                message : 'falta campos de articulo'
+            });
+        }
+    },
+    upload: (req, res) => {
+        var articleId = req.params.id;
+        // Recoger el fichero de la peticion
+        var file_name = 'Imagen no subida';
+        //console.log(req.files.file0);
+        if (!req.files.file0){
+            return res.status(400).send({
+                status : 'NOK',
+                message : file_name
+            });
+        }
+
+        //conseguir nombre y extension del archivo
+        var file_path = req.files.file0.path;
+        var file_split = file_path.split('\\');
+        var file_name = file_split[2];
+        var file_extension = file_name.split('\.')[1];
+
+        //comprobar extension (solo images):
+        const ext_allowed = ['png', 'jpg', 'jpeg', 'gif'];
+        if (!ext_allowed.includes(file_extension)){
+            //borrar archivo subido
+            fs.unlink(file_path, (err)=>{
+                
+                return res.status(400).send({
+                    status : 'NOK',
+                    message : 'Imagen no valida'
+                });
+            });
+
+        }else{
+            //Buscar Articulo, asignar imagen, y actualizar:
+            User.findOneAndUpdate({_id : articleId}, {image : file_name}, {new:true}, (err, articleUpdated)=>{
+                if (err){
+                    return res.status(500).send({
+                        status : 'NOK',
+                        message : 'Error al Actualizar'
+                    });
+                }
+
+                if(!articleUpdated){
+                    return res.status(400).send({
+                        status : 'NOK',
+                        message : 'No existe el Articulo'
+                    });
+                }
+                
+                return res.status(200).send({
+                    status : 'OK',
+                    articleUpdated
+                });
+            });
+        }
+    },
+    getImageArticle: (req, res) => {
+
+        var file = req.params.image;
+        var path_file = './upload/articles/'+file;
+
+        if(fs.existsSync(path_file)){
+            return res.sendFile(path.resolve(path_file));
+        }else{
+            return res.status(400).send({
+                status : 'NOK',
+                message : 'Imagen no existe'
+            });
+        }
+    },
+
+    searchArticle: (req, res) => {
+        var searchString = req.params.search;
+
+        User.find({ "$or" : 
+            [
+                { "title" : { "$regex" : searchString, "$options": "i" }},
+                { "content" : { "$regex" : searchString, "$options": "i" }}
+            ]
+        }).sort([['date', 'descending']])
+        .exec((err, articulos)=>{
+            if(err){
+                return res.status(500).send({
+                    status : 'NOK',
+                    message : 'Error al borrar'
+                });
+            }
+
+            if(!articulos || articulos.length <= 0){
+                return res.status(400).send({
+                    status : 'NOK',
+                    message : 'No se encontraron articulos con: '+ searchString
+                });
+            }
+
+            return res.status(200).send({
+                status : 'OK',
+                articulos
+            });
+        });
+    }
+    
+        
+}; //end controller
+
+module.exports = controller;
