@@ -9,6 +9,7 @@ class RegistroCivil {
     async showData(rut, nro_serie){
         try{
             const json = await this.getData(rut, nro_serie);
+            console.log(json);
             return json;
         }catch(err){
             console.log(err);
