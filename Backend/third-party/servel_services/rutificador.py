@@ -1,5 +1,6 @@
 import requests,urllib3, sys, locale
 from bs4 import BeautifulSoup
+import json
 
 #Uso python rutificador.py [19746549-2 || 19746549 || 19.746.549-2 || 19.746.549]
 
@@ -43,7 +44,7 @@ try:
     #Envio POST a:
     URL = "https://rutificador.org/backend.php"
     # Necesito estos datos
-    head = ["Run", "Nombre", "Sexo", "Direccion Servel", "Ciudad"]
+    head = ["run", "nombre", "sexo", "direccion_servel", "ciudad"]
 
     run_origen = None
     Run=sys.argv[1]
@@ -66,9 +67,14 @@ try:
     data = envia_y_limpia(data)
 
     count = 0
+
+    #Output data
+    json_output = {}
     for h in head:
-        print(f"{h} : {data[count]}")
+        json_output[h] = str(data[count]).strip()
         count += 1
+    print(json.dumps(json_output))
+
 except NameError:
     print(f"Uso: python rutificador.py [00000000-0 || 00000000 || 00.000.000-0 || 00.000.000]")
 except IndexError:
