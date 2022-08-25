@@ -18,7 +18,7 @@ class ServelServices {
             const servel = JSON.parse(output.toString());
             if (typeof servel.nombre !== 'undefined') {
                 // your code here
-                console.log('The output is: '+ servel.nombre);
+                console.log('The output is: '+ servel.sexo);
                 return servel;
             }else{
                 console.error('Error: ' + output.toString());

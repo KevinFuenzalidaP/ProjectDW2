@@ -62,6 +62,7 @@ let controller = {
                 //Guardar Articulo:
                 new_user.save((err, userCreated) => {
                     if(err || !userCreated){
+                        console.log(err);
                         if(err.code == 11000){
                             return res.status(403).send({
                                 status  : 'NOK',
