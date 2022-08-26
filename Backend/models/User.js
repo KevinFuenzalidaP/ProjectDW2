@@ -5,7 +5,6 @@ const Schema = mongoose.Schema;
 
 var UserSchema = Schema({
     name        :   String,
-    last_name   :   String,
     birthday    :   Date,
     rut         :   { type: String, required: true, index: { unique: true } },
     password    :   { type: String, required: true },
