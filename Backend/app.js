@@ -5,6 +5,26 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
 const jwt = require('jsonwebtoken');
+
+//documentacion SWAGGER:
+const swaggerUI = require('swagger-ui-express');
+const swaggerJsDoc = require('swagger-jsdoc');
+const swaggerSpec = {
+    definition : {
+        openapi : "3.0.0",
+        info: {
+            title : "Node MongoDB API",
+            version : "1.0"
+        },
+        servers : [
+            {
+                url: "http://localhost:3900"
+            }
+        ]
+    },
+    apis: [`${path.join(__dirname, "./routes/*.js")}`]
+}
+
 // Ejecutar Express (http)
 var app = express();
 
@@ -28,7 +48,7 @@ let role_routes = require('./routes/Role');
 // Middlewares
 app.use(bodyParser.urlencoded({extended:false}));
 app.use(bodyParser.json());
-
+app.use('/api-doc', swaggerUI.serve, swaggerUI.setup(swaggerJsDoc(swaggerSpec)));
 // CORS
 // Configurar cabeceras y cors
 app.use((req, res, next) => {

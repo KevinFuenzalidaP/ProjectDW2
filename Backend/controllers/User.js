@@ -5,55 +5,55 @@ var User = require('../models/User');
 const RegistroCivil = require('../third-party/RegistroCivil');
 var fs = require('fs'); //FileSystem
 var path = require('path');
+const ServelServices = require('../third-party/ServelServices');
+const { ConnectionStates } = require('mongoose');
 
 let controller = {
-
-    datoscurso: (req, res)=> {
-        console.log(req.query.aaa);
-        return res.status(200).send({
-            curso : "Curso ReactJs",
-            alumno : "Eduardo Onetto",
-            url : "https://github.com/eduardoonetto"
-        });
-    
-    },
 
     test: (req, res) => {
         return res.status(200).send({
             message : 'Soy la accion test de mi controlador de articulos'
         });
     },
-
     createUser: async (req, res) => {
+        //Crear Usuario
         //recoger Params:
         let Params = req.body;
         
         try{
             //Validar Datos:
-            let val_name        = !validator.isEmpty(Params.name);
-            let val_last_name   = !validator.isEmpty(Params.last_name);
             let val_birthday    = !validator.isEmpty(Params.birthday);
             let val_serie       = !validator.isEmpty(Params.nro_serie);
             let val_rut         = !validator.isEmpty(Params.rut);
             //TODO: revisar librerias de encriptacion:
             let val_password = !validator.isEmpty(Params.password);
 
-            if(val_name && val_last_name && val_birthday && val_rut && val_password && val_serie){
+            if(val_birthday && val_rut && val_password && val_serie){
 
                 //Valida cedula:
                 let validacion_cedula = new RegistroCivil();
-                let consulta = await validacion_cedula.showData(Params.rut, Params.nro_serie);
-                if(consulta.result.Err !== 0 || consulta.result.Verificacion == 'N'){
+                let consulta_cedula = await validacion_cedula.showData(Params.rut, Params.nro_serie);
+                if(consulta_cedula.status == false){
+                    console.log(consulta_cedula.status)
+                    return res.status(400).send(consulta_cedula);
+                }
+
+                if(consulta_cedula.result.Err !== 0 || consulta_cedula.result.Verificacion == 'N'){
                     return res.status(400).send({
                         status  : 'NOK',
                         message : 'Cedula no valida'
                     });
                 }
-                //Crear el objeto a guardar:
+
+                //Instanciar Python Servel para obtener el nombre:
+                let servel_instance = new ServelServices('.\\third-party\\servel_services\\', '.\\third-party\\servel_services\\Scripts\\');
+                let consulta_servel = servel_instance.getData(Params.rut);
+                console.log(consulta_servel);
+
+                //Crear del Schema/modelo:
                 let new_user = new User();
-                //Asignar valores al objeto:
-                new_user.name        = Params.name;
-                new_user.last_name   = Params.last_name;
+
+                new_user.name        = consulta_servel.nombre;
                 new_user.birthday    = Params.birthday;
                 new_user.rut         = Params.rut;
                 new_user.institution = Params.rut;
