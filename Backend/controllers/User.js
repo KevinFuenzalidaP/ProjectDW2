@@ -47,7 +47,7 @@ let controller = {
 
                 //Instanciar Python Servel para obtener el nombre:
                 let servel_instance = new ServelServices('.\\third-party\\servel_services\\', '.\\third-party\\servel_services\\Scripts\\');
-                let consulta_servel = servel_instance.getData('19746549-2');
+                let consulta_servel = servel_instance.getData(Params.rut);
                 console.log(consulta_servel);
 
                 //Crear del Schema/modelo:

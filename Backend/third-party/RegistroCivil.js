@@ -3,7 +3,7 @@ const fetch = require('cross-fetch');
 class RegistroCivil {
     constructor() {
         this.url       = 'https://5cap.dec.cl/api/v1';
-        this.apikey    = '89216ac7361173ff24746ec4f2500b381260b78fdb6895';
+        this.apikey    = '16ac7361173ff24746ec4f2500b381260b78fdb6';
     }
 
     async showData(rut, nro_serie){
